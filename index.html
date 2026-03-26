@@ -16,33 +16,22 @@
 
         .container {
             background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            padding: 35px;
+            padding: 30px;
             border-radius: 18px;
             width: 380px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             text-align: center;
         }
 
         h1 {
             color: #5e548e;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
         }
 
         input {
-            padding: 12px;
-            margin: 6px;
+            padding: 10px;
+            margin: 5px;
             border-radius: 10px;
             border: 1px solid #ddd;
-            outline: none;
-            width: 85%;
-            background: #fafafa;
-        }
-
-        input:focus {
-            border-color: #9575cd;
-            box-shadow: 0 0 5px rgba(149, 117, 205, 0.5);
+            width: 80%;
         }
 
         #minutesInput {
@@ -50,59 +39,39 @@
         }
 
         button {
-            padding: 10px 18px;
+            padding: 10px;
             border: none;
             border-radius: 10px;
-            background: linear-gradient(135deg, #9575cd, #7e57c2);
+            background: #7e57c2;
             color: white;
             cursor: pointer;
-            transition: 0.3s;
-            margin-top: 8px;
-        }
-
-        button:hover {
-            transform: scale(1.05);
+            margin: 5px;
         }
 
         ul {
             list-style: none;
             padding: 0;
-            margin-top: 18px;
         }
 
         li {
             background: #f3e5f5;
-            margin: 10px 0;
-            padding: 12px;
-            border-radius: 12px;
+            margin: 8px;
+            padding: 10px;
+            border-radius: 10px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            border: 1px solid #e1bee7;
-            animation: fadeIn 0.3s ease;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .delete-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
+        /* Hover effect */
+        li:hover {
+            transform: scale(1.05);
+            transition: 0.2s;
         }
 
         #time {
             font-size: 28px;
-            color: #5e548e;
             margin-top: 10px;
+            color: #5e548e;
         }
     </style>
 </head>
@@ -113,12 +82,16 @@
 
     <h1>Study Planner</h1>
 
-    <input type="text" id="taskInput" placeholder="Enter your task">
+    <input type="text" id="taskInput" placeholder="Enter task">
     <input type="date" id="dateInput">
+    <br>
     <button onclick="addTask()">Add Task</button>
+    <button onclick="clearAll()">Clear All</button>
 
-    <!-- TIMER -->
+    <p id="taskCount">Total Tasks: 0</p>
+
     <h2 id="time">00:00</h2>
+
     <input type="number" id="minutesInput" placeholder="Enter minutes">
     <br>
     <button onclick="setCustomTime()">Set Timer</button>
@@ -132,6 +105,7 @@
 <script>
     window.onload = function () {
         loadTasks();
+        updateTaskCount();
     };
 
     function addTask() {
@@ -142,16 +116,19 @@
 
         createTask(task, date);
         saveTasks();
+        updateTaskCount();
 
         document.getElementById("taskInput").value = "";
         document.getElementById("dateInput").value = "";
     }
 
-    function createTask(taskText, date = "", isDone = false) {
+    function createTask(text, date = "", done = false) {
         let li = document.createElement("li");
 
         let span = document.createElement("span");
-        span.textContent = date ? taskText + " (" + date + ")" : taskText;
+        span.textContent = date ? text + " (" + date + ")" : text;
+
+        if (done) span.style.textDecoration = "line-through";
 
         span.onclick = function () {
             span.style.textDecoration =
@@ -159,39 +136,33 @@
             saveTasks();
         };
 
-        if (isDone) {
-            span.style.textDecoration = "line-through";
-        }
+        let del = document.createElement("button");
+        del.textContent = "❌";
 
-        let deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "❌";
-        deleteBtn.classList.add("delete-btn");
-
-        deleteBtn.onclick = function () {
+        del.onclick = function () {
             li.remove();
             saveTasks();
+            updateTaskCount();
         };
 
         li.appendChild(span);
-        li.appendChild(deleteBtn);
-
+        li.appendChild(del);
         document.getElementById("taskList").appendChild(li);
     }
 
     function saveTasks() {
         let tasks = [];
-        let listItems = document.querySelectorAll("#taskList li");
-
-        listItems.forEach(function (li) {
+        document.querySelectorAll("#taskList li").forEach(li => {
             let span = li.querySelector("span");
             let text = span.textContent;
-            let isDone = span.style.textDecoration === "line-through";
+            let done = span.style.textDecoration === "line-through";
 
             let match = text.match(/(.*)\s\((.*)\)/);
-            let taskText = match ? match[1] : text;
-            let date = match ? match[2] : "";
-
-            tasks.push({ text: taskText, date: date, done: isDone });
+            tasks.push({
+                text: match ? match[1] : text,
+                date: match ? match[2] : "",
+                done: done
+            });
         });
 
         localStorage.setItem("tasks", JSON.stringify(tasks));
@@ -199,32 +170,47 @@
 
     function loadTasks() {
         let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-
-        tasks.forEach(function (task) {
-            createTask(task.text, task.date, task.done);
-        });
+        tasks.forEach(t => createTask(t.text, t.date, t.done));
     }
 
-    // TIMER CODE
+    function clearAll() {
+        document.getElementById("taskList").innerHTML = "";
+        localStorage.removeItem("tasks");
+        updateTaskCount();
+    }
+
+    function updateTaskCount() {
+        let count = document.querySelectorAll("#taskList li").length;
+        document.getElementById("taskCount").textContent = "Total Tasks: " + count;
+    }
+
+    // Enter key support
+    document.getElementById("taskInput").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            addTask();
+        }
+    });
+
+    // Timer
     let timeLeft = 0;
     let timer;
 
     function setCustomTime() {
-        let minutes = document.getElementById("minutesInput").value;
+        let min = document.getElementById("minutesInput").value;
 
-        if (minutes === "" || minutes <= 0) {
+        if (min <= 0) {
             alert("Enter valid minutes");
             return;
         }
 
-        timeLeft = minutes * 60;
+        timeLeft = min * 60;
         updateDisplay();
     }
 
     function startTimer() {
         if (timer || timeLeft <= 0) return;
 
-        timer = setInterval(function () {
+        timer = setInterval(() => {
             timeLeft--;
             updateDisplay();
 
@@ -244,12 +230,12 @@
     }
 
     function updateDisplay() {
-        let minutes = Math.floor(timeLeft / 60);
-        let seconds = timeLeft % 60;
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
 
         document.getElementById("time").textContent =
-            String(minutes).padStart(2, '0') + ":" +
-            String(seconds).padStart(2, '0');
+            String(m).padStart(2, '0') + ":" +
+            String(s).padStart(2, '0');
     }
 </script>
 
