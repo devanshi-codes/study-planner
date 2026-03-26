@@ -27,7 +27,6 @@
         h1 {
             color: #5e548e;
             margin-bottom: 20px;
-            font-weight: 500;
             letter-spacing: 1px;
         }
 
@@ -39,12 +38,15 @@
             outline: none;
             width: 85%;
             background: #fafafa;
-            transition: 0.3s;
         }
 
         input:focus {
             border-color: #9575cd;
             box-shadow: 0 0 5px rgba(149, 117, 205, 0.5);
+        }
+
+        #minutesInput {
+            width: 60%;
         }
 
         button {
@@ -77,7 +79,6 @@
             justify-content: space-between;
             align-items: center;
             border: 1px solid #e1bee7;
-            color: #333;
             animation: fadeIn 0.3s ease;
         }
 
@@ -93,11 +94,15 @@
         }
 
         .delete-btn {
-            margin-left: 10px;
             background: transparent;
             border: none;
             cursor: pointer;
-            font-size: 16px;
+        }
+
+        #time {
+            font-size: 28px;
+            color: #5e548e;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -111,6 +116,14 @@
     <input type="text" id="taskInput" placeholder="Enter your task">
     <input type="date" id="dateInput">
     <button onclick="addTask()">Add Task</button>
+
+    <!-- TIMER -->
+    <h2 id="time">00:00</h2>
+    <input type="number" id="minutesInput" placeholder="Enter minutes">
+    <br>
+    <button onclick="setCustomTime()">Set Timer</button>
+    <button onclick="startTimer()">Start</button>
+    <button onclick="resetTimer()">Reset</button>
 
     <ul id="taskList"></ul>
 
@@ -190,6 +203,53 @@
         tasks.forEach(function (task) {
             createTask(task.text, task.date, task.done);
         });
+    }
+
+    // TIMER CODE
+    let timeLeft = 0;
+    let timer;
+
+    function setCustomTime() {
+        let minutes = document.getElementById("minutesInput").value;
+
+        if (minutes === "" || minutes <= 0) {
+            alert("Enter valid minutes");
+            return;
+        }
+
+        timeLeft = minutes * 60;
+        updateDisplay();
+    }
+
+    function startTimer() {
+        if (timer || timeLeft <= 0) return;
+
+        timer = setInterval(function () {
+            timeLeft--;
+            updateDisplay();
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timer = null;
+                alert("Time's up!");
+            }
+        }, 1000);
+    }
+
+    function resetTimer() {
+        clearInterval(timer);
+        timer = null;
+        timeLeft = 0;
+        document.getElementById("time").textContent = "00:00";
+    }
+
+    function updateDisplay() {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+
+        document.getElementById("time").textContent =
+            String(minutes).padStart(2, '0') + ":" +
+            String(seconds).padStart(2, '0');
     }
 </script>
 
