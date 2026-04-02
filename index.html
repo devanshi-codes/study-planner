@@ -1,77 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Study Planner</title>
+    <title>Focus Journal</title>
 
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #ede7f6, #d1c4e9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
             margin: 0;
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.7);
-            padding: 30px;
-            border-radius: 18px;
-            width: 380px;
-            text-align: center;
+            width: 90%;
+            max-width: 1100px;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
 
-        h1 {
-            color: #5e548e;
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
-        input {
-            padding: 10px;
-            margin: 5px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            width: 80%;
-        }
+        h3 { color: #6d5cae; }
 
-        #minutesInput {
-            width: 60%;
+        input, textarea, button {
+            padding: 8px;
+            margin-top: 5px;
+            width: 100%;
         }
 
         button {
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background: #7e57c2;
+            background: #6d5cae;
             color: white;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 5px;
         }
 
-        ul {
-            list-style: none;
-            padding: 0;
-        }
+        ul { padding-left: 20px; }
 
-        li {
-            background: #f3e5f5;
-            margin: 8px;
+        .habit {
+            margin-top: 10px;
             padding: 10px;
+            background: #fafafa;
             border-radius: 10px;
+        }
+
+        .days-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .checkbox-row {
             display: flex;
             justify-content: space-between;
         }
 
-        /* Hover effect */
-        li:hover {
-            transform: scale(1.05);
-            transition: 0.2s;
+        .note {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 8px;
         }
 
-        #time {
-            font-size: 28px;
-            margin-top: 10px;
-            color: #5e548e;
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        #focusScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f5f3ff;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
     </style>
 </head>
@@ -80,163 +95,184 @@
 
 <div class="container">
 
-    <h1>Study Planner</h1>
+    <!-- Goal -->
+    <div class="card">
+        <h3>🎯 Goal</h3>
+        <input id="goalInput" type="number">
+        <button onclick="setGoal()">Set</button>
+        <p id="goalDisplay"></p>
+    </div>
 
-    <input type="text" id="taskInput" placeholder="Enter task">
-    <input type="date" id="dateInput">
-    <br>
-    <button onclick="addTask()">Add Task</button>
-    <button onclick="clearAll()">Clear All</button>
+    <!-- Tasks -->
+    <div class="card">
+        <h3>📋 Tasks</h3>
+        <input id="taskInput">
+        <button onclick="addTask()">Add</button>
+        <ul id="taskList"></ul>
+    </div>
 
-    <p id="taskCount">Total Tasks: 0</p>
+    <!-- Focus -->
+    <div class="card">
+        <h3>⏱️ Focus</h3>
+        <input id="focusInput" type="number" placeholder="optional">
+        <button onclick="startFocus()">Start</button>
+    </div>
 
-    <h2 id="time">00:00</h2>
+    <!-- Progress -->
+    <div class="card">
+        <h3>📊 Progress</h3>
+        <p id="studyTime">Study Time: 0 min</p>
+        <p id="tasksDone">Tasks Done: 0</p>
+    </div>
 
-    <input type="number" id="minutesInput" placeholder="Enter minutes">
-    <br>
-    <button onclick="setCustomTime()">Set Timer</button>
-    <button onclick="startTimer()">Start</button>
-    <button onclick="resetTimer()">Reset</button>
+    <!-- Habits -->
+    <div class="card">
+        <h3>📅 Habits</h3>
+        <input id="habitInput" placeholder="Add habit">
+        <button onclick="addHabit()">Add</button>
+        <div id="habitList"></div>
+    </div>
 
-    <ul id="taskList"></ul>
+    <!-- Notes -->
+    <div class="card">
+        <h3>📝 Notes</h3>
+        <textarea id="noteInput"></textarea>
+        <button onclick="addNote()">Add Note</button>
+        <div id="noteList"></div>
+    </div>
 
 </div>
 
+<div id="focusScreen">
+    <h1 id="focusTimer">25:00</h1>
+    <button onclick="endFocus()">End</button>
+</div>
+
 <script>
-    window.onload = function () {
-        loadTasks();
-        updateTaskCount();
+let tasksDone = 0, studyTime = 0, time, interval, isFocusing = false;
+
+// ENTER KEY SUPPORT
+document.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
+        if(document.activeElement.id === "goalInput") setGoal();
+        if(document.activeElement.id === "taskInput") addTask();
+        if(document.activeElement.id === "habitInput") addHabit();
+        if(document.activeElement.id === "noteInput") addNote();
+    }
+});
+
+// Goal
+function setGoal(){ goalDisplay.textContent = "Goal: " + goalInput.value; }
+
+// Tasks
+function addTask(){
+    let t = taskInput.value;
+    if(!t) return;
+
+    let li = document.createElement("li");
+    li.textContent = t;
+    li.onclick = () => {
+        li.style.textDecoration = "line-through";
+        tasksDone++;
+        tasksDoneDisplay();
     };
 
-    function addTask() {
-        let task = document.getElementById("taskInput").value;
-        let date = document.getElementById("dateInput").value;
+    taskList.appendChild(li);
+    taskInput.value="";
+}
 
-        if (task === "") return;
+function tasksDoneDisplay(){
+    tasksDoneText = "Tasks Done: " + tasksDone;
+    document.getElementById("tasksDone").textContent = tasksDoneText;
+}
 
-        createTask(task, date);
-        saveTasks();
-        updateTaskCount();
+// Focus
+function startFocus(){
+    let input = focusInput.value;
+    focusScreen.style.display="flex";
+    isFocusing = true;
 
-        document.getElementById("taskInput").value = "";
-        document.getElementById("dateInput").value = "";
+    if(!input){
+        focusTimer.textContent="∞";
+        interval=setInterval(()=>{studyTime++; updateStudy();},1000);
+    } else {
+        time=input*60;
+        interval=setInterval(updateTimer,1000);
     }
+}
 
-    function createTask(text, date = "", done = false) {
-        let li = document.createElement("li");
+function updateTimer(){
+    let m=Math.floor(time/60), s=time%60;
+    focusTimer.textContent = m+":"+(s<10?"0":"")+s;
+    time--; studyTime++; updateStudy();
 
-        let span = document.createElement("span");
-        span.textContent = date ? text + " (" + date + ")" : text;
+    if(time<0){ clearInterval(interval); alert("Done 🎉"); }
+}
 
-        if (done) span.style.textDecoration = "line-through";
+function updateStudy(){
+    document.getElementById("studyTime").textContent =
+    "Study Time: "+Math.floor(studyTime/60)+" min";
+}
 
-        span.onclick = function () {
-            span.style.textDecoration =
-                span.style.textDecoration === "line-through" ? "none" : "line-through";
-            saveTasks();
-        };
+function endFocus(){
+    clearInterval(interval);
+    focusScreen.style.display="none";
+    isFocusing=false;
+}
 
-        let del = document.createElement("button");
-        del.textContent = "❌";
-
-        del.onclick = function () {
-            li.remove();
-            saveTasks();
-            updateTaskCount();
-        };
-
-        li.appendChild(span);
-        li.appendChild(del);
-        document.getElementById("taskList").appendChild(li);
+// Distraction
+document.addEventListener("visibilitychange",()=>{
+    if(document.hidden && isFocusing){
+        setTimeout(()=>alert("Go study 😏"),100);
     }
+});
 
-    function saveTasks() {
-        let tasks = [];
-        document.querySelectorAll("#taskList li").forEach(li => {
-            let span = li.querySelector("span");
-            let text = span.textContent;
-            let done = span.style.textDecoration === "line-through";
+window.addEventListener("beforeunload",e=>{
+    if(isFocusing){ e.preventDefault(); e.returnValue=""; }
+});
 
-            let match = text.match(/(.*)\s\((.*)\)/);
-            tasks.push({
-                text: match ? match[1] : text,
-                date: match ? match[2] : "",
-                done: done
-            });
-        });
+// Habits (horizontal)
+function addHabit(){
+    let name=habitInput.value;
+    if(!name) return;
 
-        localStorage.setItem("tasks", JSON.stringify(tasks));
-    }
+    let div=document.createElement("div");
+    div.className="habit";
 
-    function loadTasks() {
-        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-        tasks.forEach(t => createTask(t.text, t.date, t.done));
-    }
+    div.innerHTML=`
+    <strong>${name}</strong>
 
-    function clearAll() {
-        document.getElementById("taskList").innerHTML = "";
-        localStorage.removeItem("tasks");
-        updateTaskCount();
-    }
+    <div class="days-row">
+        <span>Mon</span><span>Tue</span><span>Wed</span>
+        <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
 
-    function updateTaskCount() {
-        let count = document.querySelectorAll("#taskList li").length;
-        document.getElementById("taskCount").textContent = "Total Tasks: " + count;
-    }
+    <div class="checkbox-row">
+        <input type="checkbox"><input type="checkbox"><input type="checkbox">
+        <input type="checkbox"><input type="checkbox"><input type="checkbox"><input type="checkbox">
+    </div>
 
-    // Enter key support
-    document.getElementById("taskInput").addEventListener("keypress", function(e) {
-        if (e.key === "Enter") {
-            addTask();
-        }
-    });
+    <button onclick="this.parentElement.remove()">Delete</button>
+    `;
 
-    // Timer
-    let timeLeft = 0;
-    let timer;
+    habitList.appendChild(div);
+    habitInput.value="";
+}
 
-    function setCustomTime() {
-        let min = document.getElementById("minutesInput").value;
+// Notes
+function addNote(){
+    let text=noteInput.value;
+    if(!text) return;
 
-        if (min <= 0) {
-            alert("Enter valid minutes");
-            return;
-        }
+    let div=document.createElement("div");
+    div.className="note";
 
-        timeLeft = min * 60;
-        updateDisplay();
-    }
+    div.innerHTML=`<p>${text}</p>
+    <button onclick="this.parentElement.remove()">Delete</button>`;
 
-    function startTimer() {
-        if (timer || timeLeft <= 0) return;
-
-        timer = setInterval(() => {
-            timeLeft--;
-            updateDisplay();
-
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                timer = null;
-                alert("Time's up!");
-            }
-        }, 1000);
-    }
-
-    function resetTimer() {
-        clearInterval(timer);
-        timer = null;
-        timeLeft = 0;
-        document.getElementById("time").textContent = "00:00";
-    }
-
-    function updateDisplay() {
-        let m = Math.floor(timeLeft / 60);
-        let s = timeLeft % 60;
-
-        document.getElementById("time").textContent =
-            String(m).padStart(2, '0') + ":" +
-            String(s).padStart(2, '0');
-    }
+    noteList.appendChild(div);
+    noteInput.value="";
+}
 </script>
 
 </body>
